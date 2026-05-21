@@ -351,7 +351,8 @@ function gameLoop(timestamp) {
     activeItemsEl.innerText = (shieldActive > 0 ? 'SHIELD ' : '') + (slowMoActive > 0 ? 'SLOW-MO' : '');
 
     // Boss Trigger Logic
-    if (score > 0 && score % 1000 === 0 && !bossTriggered && !bossInstance) {
+    const isBossDue = (score === 200 || (score > 200 && (score - 200) % 600 === 0));
+    if (score > 0 && isBossDue && !bossTriggered && !bossInstance) {
         bossTriggered = true;
         bossWarning.classList.remove('hidden');
         screenShake = 40;
