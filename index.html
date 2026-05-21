@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CYBER DODGE - Bullet Hell</title>
+    <title>SPACE BATTLESHIP ODYSSEY</title>
     <link rel="stylesheet" href="cyber.css">
 </head>
 <body>
@@ -13,20 +13,22 @@
         <!-- UI Overlays -->
         <div id="ui-layer">
             <div id="start-screen" class="overlay">
-                <h1 class="glitch" data-text="CYBER DODGE">CYBER DODGE</h1>
+                <h1 class="glitch" data-text="SPACE BATTLESHIP">SPACE BATTLESHIP</h1>
+                <h2 class="neon-text" style="font-size: 1.5rem; margin-top: -10px; margin-bottom: 20px;">ODYSSEY</h2>
                 <p>マウスまたはタッチで移動</p>
-                <button id="start-btn" class="cyber-btn">SYSTEM START</button>
+                <button id="start-btn" class="cyber-btn">IGNITION</button>
             </div>
 
             <div id="game-over-screen" class="overlay hidden">
-                <h2 class="neon-text">SYSTEM FAILURE</h2>
-                <p>SCORE: <span id="final-score">0</span></p>
-                <button id="restart-btn" class="cyber-btn">REBOOT</button>
+                <h2 class="neon-text">HULL DESTROYED</h2>
+                <p>RECORD: <span id="final-score">0</span> LY</p>
+                <button id="restart-btn" class="cyber-btn">REDEPLOY</button>
             </div>
 
             <div id="hud" class="hidden">
-                <div class="hud-item">SCORE: <span id="current-score">0</span></div>
-                <div class="hud-item">LEVEL: <span id="current-level">1</span></div>
+                <div class="hud-item">DIST: <span id="current-score">0</span> LY</div>
+                <div class="hud-item">PHASE: <span id="current-level">1</span></div>
+                <div id="active-items" style="margin-top: 5px; font-size: 0.8rem;"></div>
             </div>
         </div>
     </div>
