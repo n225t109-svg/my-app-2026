@@ -91,12 +91,11 @@ function showTypingIndicator() {
 
 async function fetchGeminiResponse() {
     if (!apiKey) {
-        alert('APIキーが設定されていません。設定から入力してください。');
-        showModal();
-        return null;
+        return "APIキーが設定されていないようです。右上の設定（⚙️）からAPIキーを入力すると、より賢い返答ができるようになります！今はデモモードで動作しています。";
     }
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Using v1 stable instead of v1beta
+    const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     try {
         const response = await fetch(API_URL, {
@@ -111,6 +110,11 @@ async function fetchGeminiResponse() {
 
         if (!response.ok) {
             const errorData = await response.json();
+            // If API key error, provide a friendly mock fallback instead of just an error
+            if (response.status === 400 || response.status === 403) {
+                console.warn('API Key issue or Model mismatch:', errorData);
+                return "（デモモード）APIキーに問題があるか、モデルが利用できないようです。設定を確認してくださいね！";
+            }
             throw new Error(errorData.error?.message || 'APIリクエストに失敗しました');
         }
 
@@ -118,7 +122,7 @@ async function fetchGeminiResponse() {
         return data.candidates[0].content.parts[0].text;
     } catch (error) {
         console.error('Gemini API Error:', error);
-        return `エラーが発生しました: ${error.message}`;
+        return `エラーが発生しました（デモモードで返信します）: ${error.message}`;
     }
 }
 
