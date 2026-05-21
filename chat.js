@@ -116,6 +116,14 @@ async function fetchGeminiResponse(retryModel = null) {
         return { text: getMockResponse(elements.userInput.value), isMock: true };
     }
 
+    // Filter context: Gemini requires the first message to be from 'user'
+    const validContext = state.chatContext.filter((item, index) => {
+        if (index === 0 && item.role === 'model') return false;
+        return true;
+    });
+
+    if (validContext.length === 0) return { text: getMockResponse(elements.userInput.value), isMock: true };
+
     const currentModel = retryModel || state.selectedModel;
     const API_URL = `https://generativelanguage.googleapis.com/${CONFIG.API_VERSION}/models/${currentModel}:generateContent?key=${state.apiKey}`;
 
@@ -123,28 +131,28 @@ async function fetchGeminiResponse(retryModel = null) {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: state.chatContext })
+            body: JSON.stringify({ contents: validContext })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
             console.error(`API Error (${currentModel}):`, data);
-            
-            // Critical: If model not found, try one fallback, otherwise use mock
+            const apiErrorMessage = data.error?.message || "不明なエラー";
+
+            // If model not found, try fallback
             if (response.status === 404 && !retryModel && currentModel !== 'gemini-pro') {
-                console.log("Fallback to gemini-pro...");
                 return await fetchGeminiResponse('gemini-pro');
             }
             
-            return { text: `（通信制限によりデモモードで返信します） ${getMockResponse("")}`, isError: true };
+            return { text: `【APIエラー】${apiErrorMessage} (デモモードで返信します) ${getMockResponse("")}`, isError: true };
         }
 
         return { text: data.candidates[0].content.parts[0].text };
 
     } catch (error) {
         console.error("Network Error:", error);
-        return { text: `（オフラインモード） ${getMockResponse("")}`, isError: true };
+        return { text: `【通信エラー】${error.message} (オフラインモード)`, isError: true };
     }
 }
 
