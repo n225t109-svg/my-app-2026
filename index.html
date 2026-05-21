@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Companion</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="icon">✨</span>
+                <h1>AI Companion</h1>
+            </div>
+            <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+        </header>
+
+        <main id="chat-container">
+            <div id="chat-history">
+                <!-- Messages will be injected here -->
+                <div class="message ai-message">
+                    <div class="bubble">こんにちは！私はあなたのAIコンパニオンです。どのようにお手伝いしましょうか？</div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <form id="chat-form">
+                <input type="text" id="user-input" placeholder="メッセージを入力..." autocomplete="off">
+                <button type="submit" id="send-btn">送信</button>
+            </form>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>設定</h2>
+            <p>Gemini APIキーを入力してください：</p>
+            <input type="password" id="api-key-input" placeholder="AIza...">
+            <p class="hint">キーはブラウザのlocalStorageにのみ保存されます。</p>
+            <div class="modal-actions">
+                <button id="save-key-btn" class="primary-btn">保存</button>
+                <button id="close-modal-btn">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
