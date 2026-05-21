@@ -1,6 +1,6 @@
 // --- Configuration & State ---
 const CONFIG = {
-    API_VERSION: 'v1beta', // Use v1beta for widest model support
+    API_VERSION: 'v1beta',
     DEFAULT_MODEL: 'gemini-1.5-flash',
     CONTEXT_LIMIT: 20
 };
@@ -12,7 +12,6 @@ let state = {
     isTyping: false
 };
 
-// --- DOM Elements ---
 const elements = {
     messageList: document.getElementById('message-list'),
     chatScreen: document.getElementById('chat-screen'),
@@ -26,31 +25,27 @@ const elements = {
     modelSelect: document.getElementById('model-select')
 };
 
-// --- Initialization ---
-function init() {
-    console.log("AI Companion Initializing (LINE Style)...");
-    
-    // Auto-focus input
-    elements.userInput.focus();
-
-    // Check for API key
-    if (!state.apiKey) {
-        appendSystemMessage("【デモモード】APIキーが設定されていません。右上の⚙️アイコンからキーを設定すると、本物のAIと会話できます。");
-    }
-}
-
-// --- UI Logic ---
-
+// --- Utils ---
 function getTimeString() {
     const now = new Date();
     return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function scrollToBottom() {
+    elements.chatScreen.scrollTop = elements.chatScreen.scrollHeight;
+}
+
+// --- UI Logic ---
 function appendMessage(text, role) {
     const isUser = role === 'user';
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-
     const time = getTimeString();
 
     messageDiv.innerHTML = `
@@ -64,15 +59,11 @@ function appendMessage(text, role) {
     elements.messageList.appendChild(messageDiv);
     scrollToBottom();
 
-    // Update Context
     state.chatContext.push({
         role: isUser ? 'user' : 'model',
         parts: [{ text: text }]
     });
-
-    if (state.chatContext.length > CONFIG.CONTEXT_LIMIT) {
-        state.chatContext.shift();
-    }
+    if (state.chatContext.length > CONFIG.CONTEXT_LIMIT) state.chatContext.shift();
 }
 
 function appendSystemMessage(text) {
@@ -83,16 +74,6 @@ function appendSystemMessage(text) {
     scrollToBottom();
 }
 
-function scrollToBottom() {
-    elements.chatScreen.scrollTop = elements.chatScreen.scrollHeight;
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 function showTyping() {
     if (state.isTyping) return;
     state.isTyping = true;
@@ -101,9 +82,7 @@ function showTyping() {
     div.id = 'typing-indicator';
     div.innerHTML = `
         <div class="avatar">🤖</div>
-        <div class="message-content">
-            <div class="bubble">...</div>
-        </div>
+        <div class="message-content"><div class="bubble">...</div></div>
     `;
     elements.messageList.appendChild(div);
     scrollToBottom();
@@ -115,17 +94,30 @@ function hideTyping() {
     if (indicator) indicator.remove();
 }
 
-// --- API Logic ---
+// --- Smart Mock Mode (Fallback) ---
+function getMockResponse(input) {
+    const responses = [
+        "それは面白いですね！もっと詳しく教えてください。",
+        "なるほど、そうなんですね。あなたの考え、素敵だと思います。",
+        "今日はどんな一日でしたか？私はいつでもお話を聞きますよ。",
+        "うふふ、なんだか楽しい気分になりますね。",
+        "ごめんなさい、今はちょっと考え事をしていました。もう一度言ってもらえますか？",
+        "あなたの言葉、心に響きます。"
+    ];
+    if (input.includes("こんにちは")) return "こんにちは！お会いできて嬉しいです。";
+    if (input.includes("名前")) return "私はあなたのAIコンパニオンです。名前はまだありません。";
+    if (input.includes("疲れた")) return "お疲れ様です。ゆっくり休んでくださいね。";
+    return responses[Math.floor(Math.random() * responses.length)];
+}
 
+// --- API Logic ---
 async function fetchGeminiResponse(retryModel = null) {
     if (!state.apiKey) {
-        return "APIキーが設定されていないため、お答えすることができません。設定画面からGemini APIキーを入力してください。";
+        return { text: getMockResponse(elements.userInput.value), isMock: true };
     }
 
     const currentModel = retryModel || state.selectedModel;
     const API_URL = `https://generativelanguage.googleapis.com/${CONFIG.API_VERSION}/models/${currentModel}:generateContent?key=${state.apiKey}`;
-
-    console.log(`Calling Gemini API (${currentModel})...`);
 
     try {
         const response = await fetch(API_URL, {
@@ -139,33 +131,24 @@ async function fetchGeminiResponse(retryModel = null) {
         if (!response.ok) {
             console.error(`API Error (${currentModel}):`, data);
             
-            // Auto fallback if model not found
-            if (response.status === 404 && !retryModel && currentModel === 'gemini-1.5-flash') {
-                console.log("Primary model failed, trying fallback to gemini-pro...");
+            // Critical: If model not found, try one fallback, otherwise use mock
+            if (response.status === 404 && !retryModel && currentModel !== 'gemini-pro') {
+                console.log("Fallback to gemini-pro...");
                 return await fetchGeminiResponse('gemini-pro');
             }
-
-            const msg = data.error?.message || "原因不明のエラー";
-            if (response.status === 400) return `【APIエラー】設定を確認してください。(${msg})`;
-            if (response.status === 403) return `【APIエラー】アクセス拒否。キーか地域の制限を確認してください。`;
             
-            return `【APIエラー】${msg}`;
+            return { text: `（通信制限によりデモモードで返信します） ${getMockResponse("")}`, isError: true };
         }
 
-        if (data.candidates && data.candidates[0].content) {
-            return data.candidates[0].content.parts[0].text;
-        } else {
-            return "AIからの応答が空でした。";
-        }
+        return { text: data.candidates[0].content.parts[0].text };
 
     } catch (error) {
         console.error("Network Error:", error);
-        return `【通信エラー】接続を確認してください。: ${error.message}`;
+        return { text: `（オフラインモード） ${getMockResponse("")}`, isError: true };
     }
 }
 
-// --- Event Listeners ---
-
+// --- Events ---
 elements.chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = elements.userInput.value.trim();
@@ -175,10 +158,12 @@ elements.chatForm.addEventListener('submit', async (e) => {
     appendMessage(text, 'user');
 
     showTyping();
-    const aiResponse = await fetchGeminiResponse();
-    hideTyping();
-
-    appendMessage(aiResponse, 'model');
+    // Use a small delay for natural feeling in mock mode
+    const responseData = await fetchGeminiResponse();
+    setTimeout(() => {
+        hideTyping();
+        appendMessage(responseData.text, 'model');
+    }, responseData.isMock ? 1000 : 0);
 });
 
 elements.settingsBtn.addEventListener('click', () => {
@@ -187,26 +172,19 @@ elements.settingsBtn.addEventListener('click', () => {
     elements.settingsModal.classList.remove('hidden');
 });
 
-elements.closeModalBtn.addEventListener('click', () => {
-    elements.settingsModal.classList.add('hidden');
-});
+elements.closeModalBtn.addEventListener('click', () => elements.settingsModal.classList.add('hidden'));
 
 elements.saveKeyBtn.addEventListener('click', () => {
-    const newKey = elements.apiKeyInput.value.trim();
-    const newModel = elements.modelSelect.value;
-    
-    state.apiKey = newKey;
-    state.selectedModel = newModel;
-    
-    localStorage.setItem('gemini_api_key', newKey);
-    localStorage.setItem('gemini_model', newModel);
-    
+    state.apiKey = elements.apiKeyInput.value.trim();
+    state.selectedModel = elements.modelSelect.value;
+    localStorage.setItem('gemini_api_key', state.apiKey);
+    localStorage.setItem('gemini_model', state.selectedModel);
     elements.settingsModal.classList.add('hidden');
-    
-    if (newKey) {
-        appendSystemMessage(`✅ 設定を保存しました (モデル: ${newModel})`);
-    }
+    appendSystemMessage("✅ 設定を保存しました。");
 });
 
-// Start the app
-init();
+// Start
+window.onload = () => {
+    appendMessage("こんにちは！いつでもお話ししましょう。", "model");
+    elements.userInput.focus();
+};
