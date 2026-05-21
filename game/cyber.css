@@ -1,0 +1,164 @@
+:root {
+    --cyber-cyan: #00f3ff;
+    --cyber-magenta: #ff00ff;
+    --cyber-yellow: #f3ff00;
+    --cyber-bg: #050505;
+    --glow: 0 0 10px var(--cyber-cyan), 0 0 20px var(--cyber-cyan);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
+}
+
+body {
+    background-color: var(--cyber-bg);
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 600px;
+    max-height: 800px;
+    border: 2px solid var(--cyber-cyan);
+    box-shadow: var(--glow);
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* UI Layers */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.overlay {
+    background: rgba(0, 0, 0, 0.85);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all;
+    transition: opacity 0.5s;
+}
+
+.hidden {
+    display: none !important;
+    opacity: 0;
+}
+
+/* Typography */
+h1 {
+    font-size: 3rem;
+    color: var(--cyber-cyan);
+    text-shadow: var(--glow);
+    margin-bottom: 1rem;
+}
+
+h2 {
+    font-size: 2.5rem;
+    color: var(--cyber-magenta);
+    text-shadow: 0 0 15px var(--cyber-magenta);
+    margin-bottom: 1rem;
+}
+
+.cyber-btn {
+    background: transparent;
+    border: 1px solid var(--cyber-cyan);
+    color: var(--cyber-cyan);
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-top: 2rem;
+    position: relative;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+}
+
+.cyber-btn:hover {
+    background: var(--cyber-cyan);
+    color: black;
+    box-shadow: var(--glow);
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    width: 100%;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    color: var(--cyber-cyan);
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 0 0 5px var(--cyber-cyan);
+}
+
+/* Glitch Effect */
+.glitch {
+    position: relative;
+}
+
+.glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glitch::before {
+    left: 2px;
+    text-shadow: -2px 0 var(--cyber-magenta);
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch-1 5s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+    left: -2px;
+    text-shadow: -2px 0 var(--cyber-cyan);
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch-2 5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-1 {
+    0% { clip: rect(20px, 9999px, 40px, 0); }
+    100% { clip: rect(80px, 9999px, 100px, 0); }
+}
+
+@keyframes glitch-2 {
+    0% { clip: rect(50px, 9999px, 70px, 0); }
+    100% { clip: rect(10px, 9999px, 30px, 0); }
+}
