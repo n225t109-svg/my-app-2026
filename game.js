@@ -352,8 +352,11 @@ function gameLoop(timestamp) {
 
     // Boss Trigger Logic
     const isBossDue = (score === 200 || (score > 200 && (score - 200) % 600 === 0));
+    const isWarningActive = !bossWarning.classList.contains('hidden');
+
     if (score > 0 && isBossDue && !bossTriggered && !bossInstance) {
         bossTriggered = true;
+        bullets = []; // Clear existing bullets for safety
         bossWarning.classList.remove('hidden');
         screenShake = 40;
         setTimeout(() => {
@@ -365,7 +368,7 @@ function gameLoop(timestamp) {
     if (bossInstance) {
         bossInstance.update();
         bossInstance.draw();
-    } else if (timestamp - lastBulletTime > bulletInterval) {
+    } else if (!isWarningActive && timestamp - lastBulletTime > bulletInterval) {
         spawnPattern();
         lastBulletTime = timestamp;
         score += 5;
