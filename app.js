@@ -1,12 +1,13 @@
 // --- Configuration & State ---
 const CONFIG = {
-    API_VERSION: 'v1',
-    MODEL: 'gemini-1.5-flash',
+    API_VERSION: 'v1beta', // Use v1beta for widest model support
+    DEFAULT_MODEL: 'gemini-1.5-flash',
     CONTEXT_LIMIT: 20
 };
 
 let state = {
     apiKey: localStorage.getItem('gemini_api_key') || '',
+    selectedModel: localStorage.getItem('gemini_model') || CONFIG.DEFAULT_MODEL,
     chatContext: [],
     isTyping: false
 };
@@ -21,7 +22,8 @@ const elements = {
     settingsModal: document.getElementById('settings-modal'),
     closeModalBtn: document.getElementById('close-modal-btn'),
     saveKeyBtn: document.getElementById('save-key-btn'),
-    apiKeyInput: document.getElementById('api-key-input')
+    apiKeyInput: document.getElementById('api-key-input'),
+    modelSelect: document.getElementById('model-select')
 };
 
 // --- Initialization ---
@@ -115,12 +117,15 @@ function hideTyping() {
 
 // --- API Logic ---
 
-async function fetchGeminiResponse() {
+async function fetchGeminiResponse(retryModel = null) {
     if (!state.apiKey) {
         return "APIキーが設定されていないため、お答えすることができません。設定画面からGemini APIキーを入力してください。";
     }
 
-    const API_URL = `https://generativelanguage.googleapis.com/${CONFIG.API_VERSION}/models/${CONFIG.MODEL}:generateContent?key=${state.apiKey}`;
+    const currentModel = retryModel || state.selectedModel;
+    const API_URL = `https://generativelanguage.googleapis.com/${CONFIG.API_VERSION}/models/${currentModel}:generateContent?key=${state.apiKey}`;
+
+    console.log(`Calling Gemini API (${currentModel})...`);
 
     try {
         const response = await fetch(API_URL, {
@@ -132,12 +137,17 @@ async function fetchGeminiResponse() {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("API Error Detailed:", data);
-            const msg = data.error?.message || "原因不明のエラー";
+            console.error(`API Error (${currentModel}):`, data);
             
-            if (response.status === 400) return `【APIエラー】リクエストが正しくありません。キーを確認してください。(${msg})`;
-            if (response.status === 403) return `【APIエラー】アクセス拒否。キーが無効か、この地域では利用できない可能性があります。`;
-            if (response.status === 429) return `【APIエラー】リクエストが多すぎます。少し待ってからお試しください。`;
+            // Auto fallback if model not found
+            if (response.status === 404 && !retryModel && currentModel === 'gemini-1.5-flash') {
+                console.log("Primary model failed, trying fallback to gemini-pro...");
+                return await fetchGeminiResponse('gemini-pro');
+            }
+
+            const msg = data.error?.message || "原因不明のエラー";
+            if (response.status === 400) return `【APIエラー】設定を確認してください。(${msg})`;
+            if (response.status === 403) return `【APIエラー】アクセス拒否。キーか地域の制限を確認してください。`;
             
             return `【APIエラー】${msg}`;
         }
@@ -145,12 +155,12 @@ async function fetchGeminiResponse() {
         if (data.candidates && data.candidates[0].content) {
             return data.candidates[0].content.parts[0].text;
         } else {
-            return "AIからの応答が空でした。内容がポリシーに抵触している可能性があります。";
+            return "AIからの応答が空でした。";
         }
 
     } catch (error) {
         console.error("Network Error:", error);
-        return `【通信エラー】インターネット接続を確認してください。: ${error.message}`;
+        return `【通信エラー】接続を確認してください。: ${error.message}`;
     }
 }
 
@@ -173,6 +183,7 @@ elements.chatForm.addEventListener('submit', async (e) => {
 
 elements.settingsBtn.addEventListener('click', () => {
     elements.apiKeyInput.value = state.apiKey;
+    elements.modelSelect.value = state.selectedModel;
     elements.settingsModal.classList.remove('hidden');
 });
 
@@ -182,12 +193,18 @@ elements.closeModalBtn.addEventListener('click', () => {
 
 elements.saveKeyBtn.addEventListener('click', () => {
     const newKey = elements.apiKeyInput.value.trim();
+    const newModel = elements.modelSelect.value;
+    
     state.apiKey = newKey;
+    state.selectedModel = newModel;
+    
     localStorage.setItem('gemini_api_key', newKey);
+    localStorage.setItem('gemini_model', newModel);
+    
     elements.settingsModal.classList.add('hidden');
     
     if (newKey) {
-        appendSystemMessage("✅ APIキーを更新しました。");
+        appendSystemMessage(`✅ 設定を保存しました (モデル: ${newModel})`);
     }
 });
 
